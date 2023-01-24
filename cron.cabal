@@ -37,7 +37,7 @@ Extra-Source-Files:
 Homepage:           http://github.com/michaelxavier/cron
 Bug-Reports:        http://github.com/michaelxavier/cron/issues
 
-flag lib-Werror
+flag pedantic
   default: False
   manual: True
 
@@ -65,7 +65,7 @@ library
                    , mtl-compat      >= 0.2.1
                    , semigroups
                    , data-default-class >= 0.0.1
-  if flag(lib-Werror)
+  if flag(pedantic)
     ghc-options: -Werror
 
   ghc-options: -Wall
@@ -94,7 +94,7 @@ test-suite test
                   , transformers-compat
                   , semigroups
 
-  if flag(lib-Werror)
+  if flag(pedantic)
     ghc-options: -Werror
 
   ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
