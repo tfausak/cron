@@ -1,0 +1,83 @@
+name: Workflow
+
+on:
+  push: null
+  schedule:
+    - cron: '0 12 * * *'
+
+jobs:
+
+  cabal:
+    runs-on: ubuntu-22.04
+    name: Cabal
+    steps:
+      - uses: actions/checkout@v3
+
+      - run: cabal check
+
+  hlint:
+    runs-on: ubuntu-22.04
+    name: HLint
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: haskell/actions/hlint-setup@v2
+        with:
+          version: 3.5
+
+      - uses: haskell/actions/hlint-run@v2
+        with:
+          fail-on: status
+
+  ormolu:
+    runs-on: ubuntu-22.04
+    name: Ormolu
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: mrkkrp/ormolu-action@v9
+
+  build:
+    strategy:
+      matrix:
+        include:
+          - platform: macos
+            version: 12
+          - platform: ubuntu
+            version: 22.04
+          - platform: windows
+            version: 2022
+    runs-on: ${{ matrix.platform }}-${{ matrix.version }}
+    name: Build on ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - id: setup-haskell
+        uses: haskell/actions/setup@v2
+        with:
+          ghc-version: 9.4.4
+          cabal-version: 3.8.1.0
+
+      - run: cabal configure --enable-tests --jobs --test-show-details direct
+
+      - run: cat cabal.project.local
+
+      - run: cabal freeze
+
+      - run: cat cabal.project.freeze
+
+      - run: cabal outdated --v2-freeze-file cabal.project.freeze
+
+      - uses: actions/cache@v3
+        with:
+          path: ${{ steps.setup-haskell.outputs.cabal-store }}
+          key: ${{ matrix.platform }}/${{ hashFiles('cabal.project.freeze') }}
+          restore-keys: ${{ matrix.platform }}/
+
+      - run: cabal build --only-download
+
+      - run: cabal build --only-dependencies
+
+      - run: cabal build
+
+      - run: cabal test
