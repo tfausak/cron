@@ -23,14 +23,7 @@ Maintainer:          Michael Xavier <michael@michaelxavier.net>
 Build-Type:          Simple
 Extra-Source-Files:
   README.md
-  LICENSE
   changelog
-  test/Main.hs
-  test/SpecHelper.hs
-  test/System/Test/Cron.hs
-  test/System/Test/Cron/Describe.hs
-  test/System/Test/Cron/Parser.hs
-  test/System/Test/Cron/Schedule.hs
 
 flag pedantic
   default: False
