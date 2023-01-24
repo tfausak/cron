@@ -1,6 +1,5 @@
 {-# LANGUAGE ViewPatterns    #-}
 {-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE CPP             #-}
 --------------------------------------------------------------------
 -- |
 -- Module      : System.Cron.Describe
@@ -39,9 +38,6 @@ module System.Cron.Describe
 import Control.Monad
 import Data.List.NonEmpty                       (NonEmpty (..), toList)
 import Data.Maybe                               (fromJust)
-#if !MIN_VERSION_base(4,8,0)
-import Data.Traversable                         (traverse)
-#endif
 -------------------------------------------------------------------------------
 import System.Cron.Internal.Describe.Descriptors
 import System.Cron.Internal.Describe.Options
