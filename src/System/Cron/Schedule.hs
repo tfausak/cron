@@ -1,4 +1,3 @@
-{-# LANGUAGE CPP                        #-}
 {-# LANGUAGE DeriveFunctor              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
@@ -45,9 +44,7 @@ module System.Cron.Schedule
 
 
 -------------------------------------------------------------------------------
-#if !MIN_VERSION_base(4,8,0)
 import           Control.Applicative
-#endif
 import           Control.Concurrent
 import           Control.Monad.Except
 import           Control.Monad.Identity
@@ -55,9 +52,6 @@ import           Control.Monad.State
 import           Data.Attoparsec.Text       (parseOnly)
 import           Data.Text                  (Text)
 import           Data.Time
-#if !MIN_VERSION_time(1,5,0)
-import           System.Locale
-#endif
 -------------------------------------------------------------------------------
 import           System.Cron.Internal.Check
 import           System.Cron.Internal.Schedule
