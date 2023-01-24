@@ -21,10 +21,6 @@ Author:              Michael Xavier <michael@michaelxavier.net>
 Copyright:           Copyright: (c) 2012-2014 Michael Xavier
 Maintainer:          Michael Xavier <michael@michaelxavier.net>
 Build-Type:          Simple
-Stability:           experimental
-Tested-With:         GHC == 8.4.4
-                   , GHC == 8.6.5
-                   , GHC == 8.8.1
 Extra-Source-Files:
   README.md
   LICENSE
@@ -35,8 +31,6 @@ Extra-Source-Files:
   test/System/Test/Cron/Describe.hs
   test/System/Test/Cron/Parser.hs
   test/System/Test/Cron/Schedule.hs
-Homepage:           http://github.com/michaelxavier/cron
-Bug-Reports:        http://github.com/michaelxavier/cron/issues
 
 flag pedantic
   default: False
@@ -82,7 +76,6 @@ test-suite test
   Type:           exitcode-stdio-1.0
   Main-Is:        Main.hs
   Hs-Source-Dirs: test
-  default-language:    Haskell2010
   other-modules:    SpecHelper
                   , System.Test.Cron
                   , System.Test.Cron.Describe
