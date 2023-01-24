@@ -50,14 +50,13 @@ library
                    , System.Cron.Schedule
                    , System.Cron.Types
   Hs-source-dirs:  src
-  build-depends:     base            >= 4 && < 5
-                   , attoparsec      >= 0.10
-                   , text            >= 0.11 && < 2 || >= 2 && < 2.1
-                   , time            >= 1.4
-                   , mtl             >= 2.0.1
-                   , mtl-compat      >= 0.2.1
-                   , semigroups
-                   , data-default-class >= 0.0.1
+  build-depends:
+    base >= 4.17 && < 4.18
+    , attoparsec >= 0.14.4 && < 0.15
+    , data-default-class >= 0.1.2 && < 0.2
+    , mtl >= 2.3.1 && < 2.4
+    , text >= 2.0.1 && < 2.1
+    , time >= 1.12.2 && < 1.13
 
   ghc-options: -Wall
 
