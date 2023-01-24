@@ -3,13 +3,9 @@ module System.Test.Cron.Internal.Schedule
   )
 where
 
--------------------------------------------------------------------------------
 import Hedgehog
--------------------------------------------------------------------------------
 import SpecHelper
 import System.Cron.Internal.Schedule
-
--------------------------------------------------------------------------------
 
 tests :: TestTree
 tests =

@@ -1,28 +1,25 @@
 {-# LANGUAGE RecordWildCards #-}
+
 module System.Cron.Internal.Check where
 
--------------------------------------------------------------------------------
-import           Control.Applicative         as A
-import qualified Data.Foldable               as FT
-import           Data.List
-import           Data.List.NonEmpty          (NonEmpty (..))
-import qualified Data.List.NonEmpty          as NE
-import           Data.Maybe
-import           Data.Semigroup              (sconcat)
-import           Data.Time                   (Day, DiffTime, UTCTime (..),
-                                              addUTCTime, fromGregorianValid,
-                                              toGregorian)
-import           Data.Time.Calendar.WeekDate
-import qualified Data.Traversable            as FT
--------------------------------------------------------------------------------
-import qualified System.Cron.Types           as CT
--------------------------------------------------------------------------------
-
-
--------------------------------------------------------------------------------
--- Schedule projection
--------------------------------------------------------------------------------
-
+import Control.Applicative as A
+import qualified Data.Foldable as FT
+import Data.List
+import Data.List.NonEmpty (NonEmpty (..))
+import qualified Data.List.NonEmpty as NE
+import Data.Maybe
+import Data.Semigroup (sconcat)
+import Data.Time
+  ( Day,
+    DiffTime,
+    UTCTime (..),
+    addUTCTime,
+    fromGregorianValid,
+    toGregorian,
+  )
+import Data.Time.Calendar.WeekDate
+import qualified Data.Traversable as FT
+import qualified System.Cron.Types as CT
 
 -- | Will return the next time from the given starting point where
 -- this schedule will match. Returns Nothing if the schedule will
@@ -42,74 +39,72 @@ nextMatch cs now
       -- and then choose the earlier of the two.
       domStarSpec <- CT.mkDayOfMonthSpec (CT.Field CT.Star)
       dowStarSpec <- CT.mkDayOfWeekSpec (CT.Field CT.Star)
-      let domStarResult = nextMatch cs { CT.dayOfMonth = domStarSpec } now
-      let dowStarResult = nextMatch cs { CT.dayOfWeek = dowStarSpec} now
+      let domStarResult = nextMatch cs {CT.dayOfMonth = domStarSpec} now
+      let dowStarResult = nextMatch cs {CT.dayOfWeek = dowStarSpec} now
       listToMaybe (sort (catMaybes [domStarResult, dowStarResult]))
   | otherwise = do
-    expanded@Expanded {..} <- expand cs
-    let daysSource = validDays monthF domF startDay
-    listToMaybe (nextMatches daysSource expanded now)
+      expanded@Expanded {..} <- expand cs
+      let daysSource = validDays monthF domF startDay
+      listToMaybe (nextMatches daysSource expanded now)
   where
     UTCTime startDay _ = addUTCTime 60 now
     domRestricted = restricted (CT.dayOfMonthSpec $ CT.dayOfMonth cs)
     dowRestricted = restricted (CT.dayOfWeekSpec $ CT.dayOfWeek cs)
 
-
--------------------------------------------------------------------------------
 nextMatches :: [Day] -> Expanded -> UTCTime -> [UTCTime]
 nextMatches daysSource Expanded {..} now = solutions
   where
     -- move to next minute
-    solutions = filter validSolution [UTCTime d tod
-                                     | d <- daysSource
-                                     , tod <- validTODs hourF minF
-                                     ]
+    solutions =
+      filter
+        validSolution
+        [ UTCTime d tod
+          | d <- daysSource,
+            tod <- validTODs hourF minF
+        ]
     validSolution t = t > now && dowMatch t dowF
 
-
--------------------------------------------------------------------------------
 dowMatch :: UTCTime -> EField -> Bool
 dowMatch (UTCTime d _) dows = getDOW d `FT.elem` dows
 
-
--------------------------------------------------------------------------------
 -- | ISO8601 maps Sunday as 7 and Monday as 1, we want Sunday as 0
 getDOW :: Day -> Int
 getDOW d
   | iso8601DOW == 7 = 0
-  | otherwise       = iso8601DOW
+  | otherwise = iso8601DOW
   where
     (_, _, iso8601DOW) = toWeekDate d
 
-
--------------------------------------------------------------------------------
 validDays :: EField -> EField -> Day -> [Day]
 validDays months days start =
-  concat (firstYearDates:subsequentYearDates)
+  concat (firstYearDates : subsequentYearDates)
   where
     (startYear, startMonth, _) = toGregorian start
     firstYearMonths = dropWhile (< startMonth) subsequentYearMonths
     subsequentYearMonths = sort (FT.toList months)
     firstYearDates = dateSequence firstYearMonths startYear
-    subsequentYearDates = [ dateSequence subsequentYearMonths y | y <- [startYear+1..]]
-    dateSequence mseq y = catMaybes [fromGregorianValid y m d
-                                    | m <- mseq
-                                    , d <- sort (FT.toList days)]
+    subsequentYearDates = [dateSequence subsequentYearMonths y | y <- [startYear + 1 ..]]
+    dateSequence mseq y =
+      catMaybes
+        [ fromGregorianValid y m d
+          | m <- mseq,
+            d <- sort (FT.toList days)
+        ]
 
-
--------------------------------------------------------------------------------
 -- | Guarantees: the Expanded will be satisfiable (no invalid dates,
 -- no empties). dow 7 will be normalized to 0 (Sunday)
 expand :: CT.CronSchedule -> Maybe Expanded
 expand cs = do
-  expanded <- Expanded A.<$> minF'
-                       <*> hourF'
-                       <*> domF'
-                       <*> monthF'
-                       <*> dowF'
+  expanded <-
+    Expanded
+      A.<$> minF'
+      <*> hourF'
+      <*> domF'
+      <*> monthF'
+      <*> dowF'
   if satisfiable expanded
-     then Just expanded
-     else Nothing
+    then Just expanded
+    else Nothing
   where
     minF' = expandF (0, 59) (CT.minuteSpec $ CT.minute cs)
     hourF' = expandF (0, 23) (CT.hourSpec $ CT.hour cs)
@@ -117,25 +112,22 @@ expand cs = do
     monthF' = expandF (1, 12) (CT.monthSpec $ CT.month cs)
     dowF' = remapSunday <$> expandF (0, 7) (CT.dayOfWeekSpec $ CT.dayOfWeek cs)
     remapSunday lst = case NE.partition (\n -> n == 0 || n == 7) lst of
-                        ([], _)       -> lst
-                        (_, noSunday) -> 0 :| noSunday
+      ([], _) -> lst
+      (_, noSunday) -> 0 :| noSunday
     domRestricted = restricted (CT.dayOfMonthSpec $ CT.dayOfMonth cs)
     dowRestricted = restricted (CT.dayOfWeekSpec $ CT.dayOfWeek cs)
     -- If DOM and DOW are restricted, they are ORed, so even if
     -- there's an invalid day for the month, it is still satisfiable
     -- because it will just choose the DOW path
-    satisfiable Expanded {..} = (domRestricted && dowRestricted) ||
-      or [hasValidForMonth m domF | m <- FT.toList monthF]
+    satisfiable Expanded {..} =
+      (domRestricted && dowRestricted)
+        || or [hasValidForMonth m domF | m <- FT.toList monthF]
 
-
--------------------------------------------------------------------------------
 expandF :: (Int, Int) -> CT.CronField -> Maybe EField
-expandF rng (CT.Field f)       = expandBF rng f
-expandF rng (CT.ListField fs)  = NE.nub . sconcat <$> FT.mapM (expandBF rng) fs
+expandF rng (CT.Field f) = expandBF rng f
+expandF rng (CT.ListField fs) = NE.nub . sconcat <$> FT.mapM (expandBF rng) fs
 expandF rng (CT.StepField' sf) = expandBFStepped rng (CT.sfField sf) (CT.sfStepping sf)
 
-
--------------------------------------------------------------------------------
 expandBFStepped :: (Int, Int) -> CT.BaseField -> Int -> Maybe EField
 expandBFStepped rng CT.Star step = NE.nonEmpty (fillTo rng step)
 expandBFStepped (_, unitMax) (CT.RangeField' rf) step = NE.nonEmpty (fillTo (start, finish') step)
@@ -148,42 +140,33 @@ expandBFStepped (_, unitMax) (CT.SpecificField' sf) step =
   where
     startAt = CT.specificField sf
 
-
--------------------------------------------------------------------------------
-fillTo :: (Int, Int)
-       -> Int
-       -> [Int]
+fillTo ::
+  (Int, Int) ->
+  Int ->
+  [Int]
 fillTo (start, finish) step
-  | step <= 0      = []
+  | step <= 0 = []
   | finish < start = []
-  | otherwise      = takeWhile (<= finish) nums
+  | otherwise = takeWhile (<= finish) nums
   where
-    nums = [ start + (step * iter) | iter <- [0..]]
+    nums = [start + (step * iter) | iter <- [0 ..]]
 
-
--------------------------------------------------------------------------------
 expandBF :: (Int, Int) -> CT.BaseField -> Maybe EField
-expandBF (lo, hi) CT.Star         = Just (NE.fromList (enumFromTo lo hi))
+expandBF (lo, hi) CT.Star = Just (NE.fromList (enumFromTo lo hi))
 expandBF _ (CT.SpecificField' sf) = Just (CT.specificField sf :| [])
-expandBF _ (CT.RangeField' rf)    = Just (NE.fromList (enumFromTo (CT.rfBegin rf) (CT.rfEnd rf)))
+expandBF _ (CT.RangeField' rf) = Just (NE.fromList (enumFromTo (CT.rfBegin rf) (CT.rfEnd rf)))
 
-
--------------------------------------------------------------------------------
 validTODs :: EField -> EField -> [DiffTime]
 validTODs hrs mns = dtSequence
   where
     minuteSequence = sort (FT.toList mns)
     hourSequence = sort (FT.toList hrs)
     -- order here ensures we'll count up minutes before hours
-    dtSequence = [ todToDiffTime hr mn | hr <- hourSequence, mn <- minuteSequence]
+    dtSequence = [todToDiffTime hr mn | hr <- hourSequence, mn <- minuteSequence]
 
-
--------------------------------------------------------------------------------
 todToDiffTime :: Int -> Int -> DiffTime
 todToDiffTime nextHour nextMin = fromIntegral ((nextHour * 60 * 60) + nextMin * 60)
 
-
--------------------------------------------------------------------------------
 timeOfDay :: DiffTime -> (Int, Int)
 timeOfDay t = (h, m)
   where
@@ -191,61 +174,55 @@ timeOfDay t = (h, m)
     minutes = seconds `div` 60
     (h, m) = minutes `divMod` 60
 
-
--------------------------------------------------------------------------------
-hasValidForMonth
-    :: Int
-    -- ^ Month
-    -> EField
-    -> Bool
-hasValidForMonth 1 days  = FT.minimum days <= 31
-hasValidForMonth 2 days  = FT.minimum days <= 29
-hasValidForMonth 3 days  = FT.minimum days <= 31
-hasValidForMonth 4 days  = FT.minimum days <= 30
-hasValidForMonth 5 days  = FT.minimum days <= 31
-hasValidForMonth 6 days  = FT.minimum days <= 30
-hasValidForMonth 7 days  = FT.minimum days <= 31
-hasValidForMonth 8 days  = FT.minimum days <= 31
-hasValidForMonth 9 days  = FT.minimum days <= 30
+hasValidForMonth ::
+  -- | Month
+  Int ->
+  EField ->
+  Bool
+hasValidForMonth 1 days = FT.minimum days <= 31
+hasValidForMonth 2 days = FT.minimum days <= 29
+hasValidForMonth 3 days = FT.minimum days <= 31
+hasValidForMonth 4 days = FT.minimum days <= 30
+hasValidForMonth 5 days = FT.minimum days <= 31
+hasValidForMonth 6 days = FT.minimum days <= 30
+hasValidForMonth 7 days = FT.minimum days <= 31
+hasValidForMonth 8 days = FT.minimum days <= 31
+hasValidForMonth 9 days = FT.minimum days <= 30
 hasValidForMonth 10 days = FT.minimum days <= 31
 hasValidForMonth 11 days = FT.minimum days <= 30
 hasValidForMonth 12 days = FT.minimum days <= 31
-hasValidForMonth _ _     = False
+hasValidForMonth _ _ = False
 
+data Expanded = Expanded
+  { minF :: EField,
+    hourF :: EField,
+    domF :: EField,
+    monthF :: EField,
+    dowF :: EField
+  }
+  deriving (Show)
 
--------------------------------------------------------------------------------
-data Expanded = Expanded {
-     minF   :: EField
-   , hourF  :: EField
-   , domF   :: EField
-   , monthF :: EField
-   , dowF   :: EField
-   } deriving (Show)
-
-
--------------------------------------------------------------------------------
 -- This could be an intmap but I'm not convinced there's significant
 -- performance to be gained
 type EField = NonEmpty Int
 
-
-
 -- | Does the given cron schedule match for the given timestamp? This
 -- is usually used for implementing polling-type schedulers like cron
 -- itself.
-scheduleMatches
-    :: CT.CronSchedule
-    -> UTCTime
-    -> Bool
+scheduleMatches ::
+  CT.CronSchedule ->
+  UTCTime ->
+  Bool
 scheduleMatches cs (UTCTime d t) =
   maybe False go (expand cs)
   where
-    go Expanded {..} = and
-      [ FT.elem mn minF
-      , FT.elem hr hourF
-      , FT.elem mth monthF
-      , checkDOMAndDOW
-      ]
+    go Expanded {..} =
+      and
+        [ FT.elem mn minF,
+          FT.elem hr hourF,
+          FT.elem mth monthF,
+          checkDOMAndDOW
+        ]
       where
         -- turns out if neither dom and dow are stars, you're supposed to
         -- OR and not AND them:
@@ -268,12 +245,11 @@ scheduleMatches cs (UTCTime d t) =
     (hr, mn) = timeOfDay t
     dow = getDOW d
 
-
 restricted :: CT.CronField -> Bool
 restricted = not . isStar
 
 isStar :: CT.CronField -> Bool
-isStar (CT.Field CT.Star)    = True
+isStar (CT.Field CT.Star) = True
 isStar (CT.ListField bfs) = FT.any (== CT.Star) bfs
 isStar (CT.StepField' sf) = CT.sfField sf == CT.Star && CT.sfStepping sf == 1
-isStar _               = False
+isStar _ = False
