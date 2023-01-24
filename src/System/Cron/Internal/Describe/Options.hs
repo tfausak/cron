@@ -21,7 +21,7 @@ import System.Cron.Internal.Describe.Types
 
 -- | Type that holds onto information for constructing options for
 -- 'System.Cron.Describe.describe'.
-data OptionBuilder = Builder (Options -> Options)
+newtype OptionBuilder = Builder (Options -> Options)
 
 
 -- | Return a builder that creates the default options for

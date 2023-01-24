@@ -126,7 +126,7 @@ describeDisplayCronSchedule = testGroup "describeCronSchedule"
     ]
   ]
   where
-    mkCronSchedule t = let (Right cs) = parseCronSchedule t in cs
+    mkCronSchedule = either error id . parseCronSchedule
     describeNV = describe (twentyFourHourFormat <> notVerbose) . mkCronSchedule
     describeV  = describe (twentyFourHourFormat <> verbose) . mkCronSchedule
     describe12 = describe verbose . mkCronSchedule

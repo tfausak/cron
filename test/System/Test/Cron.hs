@@ -102,8 +102,8 @@ describeScheduleMatches = testGroup "scheduleMatches"
                       (UTCTime (fromGregorian 2014 11 1) 600) @?= True
     -- https://github.com/MichaelXavier/cron/issues/18
     , testCase "correctly schedules steps and ranges" $ do
-      let Right oddMinute = parseOnly cronSchedule "1-59/2 * * * *"
-      let Right evenMinute = parseOnly cronSchedule "0-59/2 * * * *"
+      let oddMinute = either error id $ parseOnly cronSchedule "1-59/2 * * * *"
+      let evenMinute = either error id $ parseOnly cronSchedule "0-59/2 * * * *"
       let t1 = mkTime 2015 7 17 15 17 0
       let t2 = mkTime 2015 7 17 15 18 0
       scheduleMatches oddMinute t1 @?= True
@@ -284,7 +284,7 @@ describeNextMatch = testGroup "nextMatch"
       t <- forAll gen
       case nextMatch cs t of
         Just res ->
-          let mactual = find (scheduleMatches cs) ((takeWhile (<= res) (nextMinutes t)))
+          let mactual = find (scheduleMatches cs) (takeWhile (<= res) (nextMinutes t))
           in case mactual of
              Just actual -> res `sameMinute` actual
              Nothing -> do
@@ -295,7 +295,7 @@ describeNextMatch = testGroup "nextMatch"
       cs <- forAll gen
       t1 <- forAll (Gen.filter (isJust . nextMatch cs) gen)
       t2 <- forAll gen
-      unless (isJust (nextMatch cs t2) == True) $ do
+      unless (isJust (nextMatch cs t2)) $ do
         annotate ("nextMatch produced Just for " <> show t1 <> " but not " <> show t2)
         failure
 

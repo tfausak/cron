@@ -24,7 +24,7 @@ describeMonadSchedule :: TestTree
 describeMonadSchedule = testGroup "MonadSchedule"
   [
     testCase "should place the first job as the last job stated." $
-      let (Job x _) = (s !! 0)
+      let (Job x _) = head s
        in show x @?= "CronSchedule 0 0 * * *"
   , testCase "should place the last job as the first job stated." $
       let (Job x _) = (s !! 2)
@@ -32,9 +32,10 @@ describeMonadSchedule = testGroup "MonadSchedule"
   , testCase "should read all three jobs." $
       length s @?= 3
   ]
-  where Right ((), s) = runSchedule $ do addJob noop "* * * * *"
-                                         addJob noop "0 * * * *"
-                                         addJob noop "0 0 * * *"
+  where ((), s) = either (error . show) id . runSchedule $ do
+          addJob noop "* * * * *"
+          addJob noop "0 * * * *"
+          addJob noop "0 0 * * *"
         noop = return ()
 
 describeExecSchedule :: TestTree

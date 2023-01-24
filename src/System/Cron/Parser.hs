@@ -39,6 +39,7 @@ import           Data.Attoparsec.Combinator (choice)
 import           Data.Attoparsec.Text       (Parser)
 import qualified Data.Attoparsec.Text       as A
 import           Data.Char                  (isSpace)
+import           Data.Functor               (($>))
 import           Data.List.NonEmpty         (NonEmpty (..))
 import           Data.Text                  (Text, toLower)
 -------------------------------------------------------------------------------
@@ -171,7 +172,7 @@ baseFieldP :: StringSupport -> Parser BaseField
 baseFieldP ss = rangeP <|>
                 starP  <|>
                 specificP
-  where starP         = A.char '*' *> Ap.pure Star
+  where starP         = A.char '*' $> Star
         rangeP        = RangeField' <$> rangeFieldP ss
         specificP     = SpecificField' <$> specificFieldP ss
 
@@ -193,27 +194,27 @@ rangeFieldP ss = do
 
 -------------------------------------------------------------------------------
 yearlyP :: Parser CronSchedule
-yearlyP  = A.string "@yearly"  *> pure yearly
+yearlyP  = A.string "@yearly"  $> yearly
 
 
 -------------------------------------------------------------------------------
 monthlyP :: Parser CronSchedule
-monthlyP = A.string "@monthly" *> pure monthly
+monthlyP = A.string "@monthly" $> monthly
 
 
 -------------------------------------------------------------------------------
 weeklyP :: Parser CronSchedule
-weeklyP  = A.string "@weekly"  *> pure weekly
+weeklyP  = A.string "@weekly"  $> weekly
 
 
 -------------------------------------------------------------------------------
 dailyP :: Parser CronSchedule
-dailyP   = A.string "@daily"   *> pure daily
+dailyP   = A.string "@daily"   $> daily
 
 
 -------------------------------------------------------------------------------
 hourlyP :: Parser CronSchedule
-hourlyP  = A.string "@hourly"  *> pure hourly
+hourlyP  = A.string "@hourly"  $> hourly
 
 
 -------------------------------------------------------------------------------
@@ -262,7 +263,7 @@ supportParser = \case
 -------------------------------------------------------------------------------
 
 toI :: Int -> Text -> Parser Int
-toI int str = const int <$> A.string str
+toI int str = int <$ A.string str
 
 -------------------------------------------------------------------------------
 parseDay :: Parser Int

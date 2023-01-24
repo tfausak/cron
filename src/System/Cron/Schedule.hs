@@ -44,7 +44,6 @@ module System.Cron.Schedule
 
 
 -------------------------------------------------------------------------------
-import           Control.Applicative
 import           Control.Concurrent
 import           Control.Monad
 import           Control.Monad.Except

@@ -1,4 +1,3 @@
-{-# LANGUAGE RecordWildCards #-}
 --TODO: internal module, quickcheck
 module System.Cron
     ( module System.Cron.Types
