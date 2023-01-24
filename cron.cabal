@@ -1,3 +1,5 @@
+cabal-version: 2.2
+
 Name:                cron
 Version:             0.7.0
 Description:
@@ -23,7 +25,6 @@ Stability:           experimental
 Tested-With:         GHC == 8.4.4
                    , GHC == 8.6.5
                    , GHC == 8.8.1
-Cabal-Version:       >= 1.10
 Extra-Source-Files:
   README.md
   LICENSE
@@ -41,7 +42,14 @@ flag pedantic
   default: False
   manual: True
 
+common library
+  default-language: Haskell2010
+  if flag(pedantic)
+    ghc-options: -Werror
+
 library
+  import: library
+
   Exposed-modules:   System.Cron
                    , System.Cron.Internal.Describe.Descriptors
                    , System.Cron.Internal.Describe.Options
@@ -55,7 +63,6 @@ library
                    , System.Cron.Schedule
                    , System.Cron.Types
   Hs-source-dirs:  src
-  default-language:    Haskell2010
   build-depends:     base            >= 4 && < 5
                    , attoparsec      >= 0.10
                    , text            >= 0.11 && < 2 || >= 2 && < 2.1
@@ -65,13 +72,13 @@ library
                    , mtl-compat      >= 0.2.1
                    , semigroups
                    , data-default-class >= 0.0.1
-  if flag(pedantic)
-    ghc-options: -Werror
 
   ghc-options: -Wall
 
 
 test-suite test
+  import: library
+
   Type:           exitcode-stdio-1.0
   Main-Is:        Main.hs
   Hs-Source-Dirs: test
@@ -93,9 +100,6 @@ test-suite test
                   , time
                   , transformers-compat
                   , semigroups
-
-  if flag(pedantic)
-    ghc-options: -Werror
 
   ghc-options: -Wall -O2 -threaded -rtsopts -with-rtsopts=-N
 
