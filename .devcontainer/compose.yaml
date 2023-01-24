@@ -1,0 +1,13 @@
+services:
+  devcontainer:
+    command: sh -c 'while sleep 1; do :; done'
+    image: public.ecr.aws/acilearning/haskell:9.4.4
+    volumes:
+      - ..:/workspaces/cron
+      - cabal:/home/haskell/.cabal
+      - cabal-store:/cabal-store
+    working_dir: /workspaces/cron
+volumes:
+  cabal: null
+  cabal-store:
+    external: true
